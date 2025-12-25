@@ -25,7 +25,6 @@ function App() {
   const [view, setView] = useState('pos');
   const [shiftsArchive, setShiftsArchive] = useState([]);
   const [currentShiftInfo, setCurrentShiftInfo] = useState({ type: 'صباحي', employee: '' });
-  const [showShiftArchiveModal, setShowShiftArchiveModal] = useState(false);
   
   // البيانات
   const [products, setProducts] = useState([]);
@@ -46,10 +45,11 @@ function App() {
   const [paymentStatus, setPaymentStatus] = useState('مدفوع');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [manualPriceMode, setManualPriceMode] = useState(false); 
-  const [lastInvoice, setLastInvoice] = useState(null);
+  const [lastInvoice, setLastInvoice] = useState(null); // يستخدم للطباعة
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
+  const [archiveDate, setArchiveDate] = useState(''); // 🆕 فلتر تاريخ للأرشيف
 
   // Forms inputs
   const [expName, setExpName] = useState('');
@@ -65,10 +65,11 @@ function App() {
   // Modals
   const [deliveryModal, setDeliveryModal] = useState(null);
   const [shiftModal, setShiftModal] = useState(false);
+  const [showShiftArchiveModal, setShowShiftArchiveModal] = useState(false);
+  const [viewInvoiceModal, setViewInvoiceModal] = useState(null); // 🆕 مودال عرض الفاتورة
 
   // --- Effects ---
   useEffect(() => {
-    // الاستماع للتغييرات في قاعدة البيانات
     const unsubP = onSnapshot(collection(db, 'products'), s => setProducts(s.docs.map(d => ({ id: d.id, ...d.data() }))));
     const unsubC = onSnapshot(collection(db, 'customers'), s => setCustomers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
     const unsubS = onSnapshot(query(collection(db, "shifts_archive"), orderBy("timestamp", "desc")), s => setShiftsArchive(s.docs.map(d => ({ id: d.id, ...d.data() }))));
@@ -183,6 +184,12 @@ function App() {
     fetchFinancials();
   };
 
+  // وظيفة إعادة الطباعة
+  const handleReprint = (inv) => {
+    setLastInvoice(inv);
+    setTimeout(() => { window.print(); }, 500);
+  };
+
   const navBtn = (v, l, e) => (
     <button onClick={() => setView(v)} className={`nav-item ${view === v ? 'active' : ''}`}><span>{e}</span> {l}</button>
   );
@@ -194,47 +201,33 @@ function App() {
         :root { --primary: #4f46e5; --bg: #f3f4f6; --surface: #ffffff; --text: #1f2937; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
         .app-container { background: var(--bg); min-height: 100vh; padding: 15px; direction: rtl; font-family: 'Segoe UI', Tahoma, sans-serif; color: var(--text); }
         
-        /* Navigation */
         .nav-bar { display: flex; gap: 10px; padding: 10px; background: var(--surface); border-radius: 16px; margin-bottom: 20px; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .nav-item { border: none; background: transparent; padding: 10px 20px; border-radius: 12px; font-weight: 600; color: #6b7280; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3); }
         
-        /* Layouts */
         .card { background: var(--surface); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #e5e7eb; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #cbd5e1; box-sizing: border-box; }
         .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
         
-        /* POS Specific Fixes */
         .pos-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; height: calc(100vh - 100px); }
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; overflow-y: auto; align-content: start; padding-bottom: 50px; }
         
-        /* 🔥 تعديل الأزرار لتظهر النص بوضوح */
+        /* Product Button Fix */
         .prod-btn { 
-          background: var(--surface); 
-          border: 1px solid #e5e7eb; 
-          padding: 15px 10px; 
-          border-radius: 12px; 
-          cursor: pointer; 
-          min-height: 110px; /* ضمان ارتفاع كافٍ */
-          height: auto; 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          justify-content: center; 
-          gap: 5px;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
-          transition: 0.2s; 
+          background: var(--surface); border: 1px solid #e5e7eb; padding: 15px 10px; border-radius: 12px; cursor: pointer; 
+          min-height: 110px; height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+          gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: 0.2s; 
         }
         .prod-btn:hover { border-color: var(--primary); transform: translateY(-2px); }
         .prod-btn span { font-size: 14px; font-weight: bold; text-align: center; color: #1f2937; line-height: 1.2; }
         .prod-btn small { color: #6b7280; font-size: 13px; font-weight: bold; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
 
-        /* Cart & Kanban */
         .cart-panel { background: var(--surface); border-radius: 16px; padding: 15px; display: flex; flex-direction: column; height: 100%; }
         .cart-items { flex: 1; overflow-y: auto; border-top: 1px solid #f3f4f6; margin: 10px 0; }
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
+        
         .kanban-board { display: flex; gap: 15px; overflow-x: auto; height: calc(100vh - 160px); align-items: flex-start; }
         .kanban-col { flex: 1; min-width: 300px; background: #e5e7eb; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; max-height: 100%; }
         .k-header { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; padding: 10px; background: #fff; border-radius: 10px; }
@@ -253,6 +246,7 @@ function App() {
       <div className="nav-bar no-print">
         {navBtn('pos', 'نقطة بيع', '🧺')}
         {navBtn('tracking', 'متابعة', '🚚')}
+        {navBtn('invoices', 'السجل', '📜')}
         {navBtn('reports', 'الميزانية', '📊')}
         {navBtn('crm', 'الزبائن', '👥')}
         {navBtn('expenses', 'المصاريف', '💸')}
@@ -306,7 +300,6 @@ function App() {
                   }}
                 >
                   <div style={{fontSize: 24}}>👕</div>
-                  {/* هنا يظهر الاسم بوضوح */}
                   <span>{p.name}</span>
                   <small>{p.defaultPrice} د.أ</small>
                 </button>
@@ -423,7 +416,54 @@ function App() {
         </div>
       )}
 
-      {/* 3. Reports View */}
+      {/* 🆕 3. Invoices Archive View */}
+      {view === 'invoices' && (
+        <div className="no-print" style={{maxWidth:'800px', margin:'0 auto'}}>
+          <div className="card">
+            <h3>📜 سجل الفواتير (الأرشيف)</h3>
+            <div style={{display:'flex', gap:10, marginBottom:15}}>
+              <input type="date" value={archiveDate} onChange={e => setArchiveDate(e.target.value)} style={{margin:0}} />
+              <button onClick={() => setArchiveDate('')} style={{background:'#6b7280', color:'white', border:'none', padding:'0 15px', borderRadius:8}}>عرض الكل</button>
+            </div>
+            
+            <table style={{width:'100%', textAlign:'right', borderCollapse:'collapse'}}>
+              <thead>
+                <tr style={{background:'#f3f4f6'}}>
+                  <th style={{padding:10}}>#</th>
+                  <th>الزبون</th>
+                  <th>التاريخ</th>
+                  <th>المبلغ</th>
+                  <th>الحالة</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoicesList
+                  .filter(inv => !archiveDate || inv.fullDate === archiveDate)
+                  .map(inv => (
+                  <tr key={inv.id} style={{borderBottom:'1px solid #eee'}}>
+                    <td style={{padding:10}}>#{inv.invoiceNumber}</td>
+                    <td>{inv.clientName}</td>
+                    <td>{inv.fullDate}</td>
+                    <td style={{fontWeight:'bold'}}>{inv.totalAmount.toFixed(2)}</td>
+                    <td><span className="badge">{inv.orderStatus}</span></td>
+                    <td>
+                      <button 
+                        onClick={() => setViewInvoiceModal(inv)}
+                        style={{background:'#3b82f6', color:'white', border:'none', padding:'4px 10px', borderRadius:4, cursor:'pointer'}}
+                      >
+                        👁️ عرض
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Reports View */}
       {view === 'reports' && (
         <div className="no-print" style={{maxWidth:'800px', margin:'0 auto'}}>
           <div className="card">
@@ -457,7 +497,7 @@ function App() {
         </div>
       )}
 
-      {/* 4. CRM View */}
+      {/* 5. CRM View */}
       {view === 'crm' && (
         <div className="no-print" style={{maxWidth:'600px', margin:'0 auto'}}>
           <div className="card">
@@ -475,7 +515,7 @@ function App() {
         </div>
       )}
 
-      {/* 5. Expenses View */}
+      {/* 6. Expenses View */}
       {view === 'expenses' && (
         <div className="no-print" style={{maxWidth:'600px', margin:'0 auto'}}>
           <div className="card">
@@ -507,7 +547,7 @@ function App() {
         </div>
       )}
 
-      {/* 6. Settings View */}
+      {/* 7. Settings View */}
       {view === 'settings' && (
         <div className="no-print" style={{maxWidth:'700px', margin:'0 auto'}}>
           <div className="card" style={{borderTop:'4px solid #4f46e5'}}>
@@ -583,6 +623,20 @@ function App() {
             <button className="btn-main" style={{background:'#3b82f6'}} onClick={async () => { await updateDoc(doc(db, 'invoices', deliveryModal.id), { orderStatus:'تم الاستلام', remainingAmount:0, deliveryPayMethod:'Visa' }); setDeliveryModal(null); fetchFinancials(); }}>فيزا 💳</button>
             <button onClick={()=>setDeliveryModal(null)} style={{width:'100%', marginTop:10, border:'none', background:'none'}}>إلغاء</button>
           </div>
+        </div>
+      )}
+      
+      {/* 🆕 مودال عرض الفاتورة وطباعتها */}
+      {viewInvoiceModal && (
+        <div className="modal-overlay no-print">
+           <div className="card" style={{width: 'auto', maxWidth: 400}}>
+              <h3>🧾 تفاصيل الفاتورة #{viewInvoiceModal.invoiceNumber}</h3>
+              <div style={{maxHeight: '50vh', overflowY: 'auto', border: '1px solid #eee', padding: 10, borderRadius: 8}}>
+                 <ReceiptTemplate inv={viewInvoiceModal} title="نسخة مؤرشفة" />
+              </div>
+              <button className="btn-main" onClick={() => handleReprint(viewInvoiceModal)} style={{marginTop: 10}}>🖨️ طباعة</button>
+              <button onClick={() => setViewInvoiceModal(null)} style={{width: '100%', border: 'none', background: 'none', marginTop: 10}}>إغلاق</button>
+           </div>
         </div>
       )}
 
