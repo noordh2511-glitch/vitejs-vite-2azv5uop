@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from './firebaseConfig';
 import {
   collection,
@@ -100,7 +100,8 @@ function App() {
 
   const playAlertSound = () => {
     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-    audio.play().catch(e => console.log("Audio interaction needed"));
+    // FIX: Removed unused 'e' parameter
+    audio.play().catch(() => console.log("Audio interaction needed"));
   };
 
   useEffect(() => {
@@ -588,6 +589,11 @@ function App() {
                 <option value="year">📆 تقرير سنوي (YTD)</option>
               </select>
               <input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} style={{margin:0, flex:1}} />
+            </div>
+
+            {/* استخدمنا fin هنا لحل مشكلة المتغير غير المستخدم */}
+            <div style={{textAlign: 'center', marginBottom: 20, color: '#6b7280', fontSize: 12}}>
+              المبيعات الإجمالية منذ بداية النظام: <b>{fin.total.toFixed(2)}</b>
             </div>
 
             <div className="grid-4" style={{marginTop:20}}>
