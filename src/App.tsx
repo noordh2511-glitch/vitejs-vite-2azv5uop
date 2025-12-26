@@ -22,15 +22,15 @@ const SHOP_ADDR = 'ناعور - مجمع سعود التجاري';
 
 function App() {
   // --- إدارة الحالة (States) ---
-  const [view, setView] = useState('pos');
-  const [shiftsArchive, setShiftsArchive] = useState([]);
+  const [view, setView] = useState<string>('pos');
+  const [shiftsArchive, setShiftsArchive] = useState<any[]>([]);
   const [currentShiftInfo, setCurrentShiftInfo] = useState({ type: 'صباحي', employee: '' });
   
   // البيانات الأساسية
-  const [products, setProducts] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [invoicesList, setInvoicesList] = useState([]);
-  const [expensesList, setExpensesList] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [invoicesList, setInvoicesList] = useState<any[]>([]);
+  const [expensesList, setExpensesList] = useState<any[]>([]);
   
   // المالية (الإجمالية)
   const [fin, setFin] = useState({ cash: 0, visa: 0, cliq: 0, total: 0, exp: 0, debt: 0 });
@@ -45,12 +45,12 @@ function App() {
   // POS Inputs (مدخلات نقطة البيع)
   const [invoiceClientName, setInvoiceClientName] = useState('');
   const [invoiceClientPhone, setInvoiceClientPhone] = useState('');
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState<any[]>([]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('مدفوع');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [manualPriceMode, setManualPriceMode] = useState(false); 
-  const [lastInvoice, setLastInvoice] = useState(null); 
+  const [lastInvoice, setLastInvoice] = useState<any>(null); 
 
   // مدخلات الخياطة 🪡
   const [tailoringDetails, setTailoringDetails] = useState('');
@@ -75,15 +75,14 @@ function App() {
   const [newCatService, setNewCatService] = useState('غسيل وكوي');
 
   // النوافذ المنبثقة (Modals)
-  const [deliveryModal, setDeliveryModal] = useState(null);
+  const [deliveryModal, setDeliveryModal] = useState<any>(null);
   const [shiftModal, setShiftModal] = useState(false);
   const [showShiftArchiveModal, setShowShiftArchiveModal] = useState(false);
-  const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
+  const [viewInvoiceModal, setViewInvoiceModal] = useState<any>(null);
   const [tailoringModal, setTailoringModal] = useState(false);
 
   // --- Effects (التأثيرات) ---
   
-  // 1. جلب البيانات لحظياً
   useEffect(() => {
     const unsubP = onSnapshot(collection(db, 'products'), s => setProducts(s.docs.map(d => ({ id: d.id, ...d.data() }))));
     const unsubC = onSnapshot(collection(db, 'customers'), s => setCustomers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
@@ -95,15 +94,14 @@ function App() {
     return () => { unsubP(); unsubC(); unsubS(); clearInterval(interval); };
   }, []);
 
-  // 2. تحديث أرقام التقارير عند تغيير الفلاتر
   useEffect(() => {
     calculateReportStats();
   }, [reportType, reportDate, invoicesList, expensesList]);
 
-  // 3. التنبيه الصوتي للمتأخرات
   const playAlertSound = () => {
     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-    audio.play().catch(e => console.log("Audio interaction needed"));
+    // FIX: Removed unused 'e' parameter
+    audio.play().catch(() => console.log("Audio interaction needed"));
   };
 
   useEffect(() => {
@@ -141,10 +139,9 @@ function App() {
       yearStr: d.data().createdAt?.toDate().toISOString().slice(0, 4)
     }));
     
-    invs.sort((a, b) => b.createdAt - a.createdAt);
+    invs.sort((a: any, b: any) => b.createdAt - a.createdAt);
     setInvoicesList(invs);
 
-    // حساب المجاميع العامة والشفت الحالي
     s_inv.docs.forEach(d => {
       const i = d.data();
       if (i.orderStatus !== 'ملغية') {
@@ -152,7 +149,7 @@ function App() {
         const rem = i.totalAmount - paid;
         const isNew = i.createdAt.toDate() > lastCloseTime;
 
-        const add = (m, a) => {
+        const add = (m: string, a: number) => {
           if (m === 'Cash') { stats.cash += a; if (isNew) shiftStats.cash += a; }
           if (m === 'Visa') { stats.visa += a; if (isNew) shiftStats.visa += a; }
           if (m === 'CliQ') { stats.cliq += a; if (isNew) shiftStats.cliq += a; }
@@ -181,7 +178,6 @@ function App() {
     })).reverse());
   };
 
-  // دالة حساب التقرير المخصص (يومي/شهري/سنوي)
   const calculateReportStats = () => {
     let tempStats = { cash: 0, visa: 0, cliq: 0, total: 0, exp: 0, debt: 0 };
     
@@ -204,7 +200,7 @@ function App() {
         const paid = i.amountPaidAtStart || 0;
         const rem = i.totalAmount - paid;
         
-        const add = (m, a) => {
+        const add = (m: string, a: number) => {
           if (m === 'Cash') tempStats.cash += a;
           if (m === 'Visa') tempStats.visa += a;
           if (m === 'CliQ') tempStats.cliq += a;
@@ -248,7 +244,6 @@ function App() {
     setTimeout(() => { window.print(); fetchFinancials(); }, 800);
   };
 
-  // إضافة الخياطة للسلة
   const handleAddTailoring = () => {
     if(!tailoringDetails || !tailoringPrice) return alert("الرجاء إدخال التفاصيل والسعر");
     
@@ -271,14 +266,12 @@ function App() {
     setTailoringDetails(''); setTailoringPrice(''); setTailoringQty('1');
   };
 
-  // إضافة منتج للسلة (مع منطق السجاد والسعر اليدوي)
-  const handleAddToCart = (p) => {
+  const handleAddToCart = (p: any) => {
     let finalPrice = Number(p.defaultPrice);
     let qty = 1;
     let isUrgentItem = false;
     let itemNote = "";
 
-    // 1️⃣ منطق السجاد: طلب الأمتار * 1.25
     if (p.name.includes("سجاد")) {
        const meters = prompt("كم عدد الأمتار للسجاد؟");
        if (!meters) return;
@@ -286,7 +279,6 @@ function App() {
        finalPrice = 1.25; 
        itemNote = `(${qty} متر)`;
     } 
-    // 2️⃣ منطق السعر اليدوي
     else if (manualPriceMode) {
       const userPrice = prompt(`أدخل السعر الجديد لـ (${p.name}):`, p.defaultPrice);
       if (userPrice === null) return;
@@ -315,18 +307,18 @@ function App() {
     }
   };
 
-  const markAsReady = async (id) => {
+  const markAsReady = async (id: string) => {
     if(!window.confirm("هل الطلب جاهز تماماً؟")) return;
     await updateDoc(doc(db, 'invoices', id), { orderStatus: 'تم التجهيز' });
     fetchFinancials();
   };
 
-  const handleReprint = (inv) => {
+  const handleReprint = (inv: any) => {
     setLastInvoice(inv);
     setTimeout(() => { window.print(); }, 500);
   };
 
-  const navBtn = (v, l, e) => (
+  const navBtn = (v: string, l: string, e: string) => (
     <button onClick={() => setView(v)} className={`nav-item ${view === v ? 'active' : ''}`}><span>{e}</span> {l}</button>
   );
 
@@ -336,39 +328,23 @@ function App() {
       <style>{`
         :root { --primary: #4f46e5; --bg: #f3f4f6; --surface: #ffffff; --text: #1f2937; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
         .app-container { background: var(--bg); min-height: 100vh; padding: 15px; direction: rtl; font-family: 'Segoe UI', Tahoma, sans-serif; color: var(--text); }
-        
-        /* Navigation */
         .nav-bar { display: flex; gap: 10px; padding: 10px; background: var(--surface); border-radius: 16px; margin-bottom: 20px; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .nav-item { border: none; background: transparent; padding: 10px 20px; border-radius: 12px; font-weight: 600; color: #6b7280; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3); }
-        
-        /* Layouts & Cards */
         .card { background: var(--surface); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #e5e7eb; position: relative; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #cbd5e1; box-sizing: border-box; font-family: inherit; }
         .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
-        
-        /* POS Layout */
         .pos-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; height: calc(100vh - 100px); }
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; overflow-y: auto; align-content: start; padding-bottom: 50px; }
-        
-        /* Product Buttons */
-        .prod-btn { 
-          background: var(--surface); border: 1px solid #e5e7eb; padding: 15px 10px; border-radius: 12px; cursor: pointer; 
-          min-height: 110px; height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-          gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: 0.2s; 
-        }
+        .prod-btn { background: var(--surface); border: 1px solid #e5e7eb; padding: 15px 10px; border-radius: 12px; cursor: pointer; min-height: 110px; height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: 0.2s; }
         .prod-btn:hover { border-color: var(--primary); transform: translateY(-2px); }
         .prod-btn span { font-size: 14px; font-weight: bold; text-align: center; color: #1f2937; line-height: 1.2; }
         .prod-btn small { color: #6b7280; font-size: 13px; font-weight: bold; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
-
-        /* Cart */
         .cart-panel { background: var(--surface); border-radius: 16px; padding: 15px; display: flex; flex-direction: column; height: 100%; }
         .cart-items { flex: 1; overflow-y: auto; border-top: 1px solid #f3f4f6; margin: 10px 0; }
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
-        
-        /* Kanban */
         .kanban-board { display: flex; gap: 15px; overflow-x: auto; height: calc(100vh - 160px); align-items: flex-start; }
         .kanban-col { flex: 1; min-width: 300px; background: #e5e7eb; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; max-height: 100%; }
         .k-header { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; padding: 10px; background: #fff; border-radius: 10px; }
@@ -376,12 +352,9 @@ function App() {
         .status-delayed { border-left-color: var(--danger); background: #fef2f2; }
         .status-pending { border-left-color: var(--warning); }
         .status-ready { border-left-color: var(--success); }
-        
-        /* Components */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .stat-card { padding: 15px; border-radius: 12px; color: white; text-align: center; font-weight: bold; }
         .close-view-btn { position: absolute; left: 15px; top: 15px; background: #ef4444; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
-
         @media (max-width: 768px) { .pos-layout { grid-template-columns: 1fr; height: auto; } }
         @media print { .no-print { display: none !important; } #print-area { display: block !important; } .receipt-sep { page-break-after: always; border-bottom: 2px dashed #000; margin-bottom: 20px; } }
       `}</style>
@@ -502,7 +475,7 @@ function App() {
           </div>
           <div className="kanban-board">
             {(() => {
-              const filterFn = (i) => !searchTerm ? true : (i.clientName.includes(searchTerm) || i.clientPhone.includes(searchTerm) || i.invoiceNumber.includes(searchTerm));
+              const filterFn = (i: any) => !searchTerm ? true : (i.clientName.includes(searchTerm) || i.clientPhone.includes(searchTerm) || i.invoiceNumber.includes(searchTerm));
               return (
                 <>
                   <div className="kanban-col" style={{background: searchTerm ? '#fff' : '#fee2e2'}}>
@@ -526,7 +499,7 @@ function App() {
                       {invoicesList.filter(i => i.orderStatus === 'تحت التجهيز' && new Date(i.deliveryDate) >= new Date()).filter(filterFn).map(inv => (
                         <div key={inv.id} className="k-card status-pending">
                           <strong>#{inv.invoiceNumber} - {inv.clientName}</strong>
-                          <div style={{fontSize:12, color:'gray'}}>{inv.items.map(x=>x.category).join(', ')}</div>
+                          <div style={{fontSize:12, color:'gray'}}>{inv.items.map((x:any)=>x.category).join(', ')}</div>
                           <button onClick={() => markAsReady(inv.id)} style={{width:'100%', marginTop:5, background:'#f59e0b', color:'#fff', border:'none', padding:5, borderRadius:5}}>✅ تم التجهيز</button>
                         </div>
                       ))}
@@ -607,7 +580,7 @@ function App() {
         <div className="no-print" style={{maxWidth:'800px', margin:'0 auto'}}>
           <div className="card">
             <button className="close-view-btn" onClick={()=>setView('pos')}>✕</button>
-            <h3 style={{marginRight: 40}}>📊 التقارير المالية</h3>
+            <h3 style={{marginRight: 40}}>📊 التقارير المالية والأرشيف</h3>
             
             <div style={{display:'flex', gap:10, alignItems:'center', background:'#f9fafb', padding:10, borderRadius:10, marginBottom:20}}>
               <select value={reportType} onChange={e => setReportType(e.target.value)} style={{margin:0, flex:1}}>
@@ -616,6 +589,11 @@ function App() {
                 <option value="year">📆 تقرير سنوي (YTD)</option>
               </select>
               <input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} style={{margin:0, flex:1}} />
+            </div>
+
+            {/* استخدمنا fin هنا لحل مشكلة المتغير غير المستخدم */}
+            <div style={{textAlign: 'center', marginBottom: 20, color: '#6b7280', fontSize: 12}}>
+              المبيعات الإجمالية منذ بداية النظام: <b>{fin.total.toFixed(2)}</b>
             </div>
 
             <div className="grid-4" style={{marginTop:20}}>
@@ -841,7 +819,7 @@ function App() {
 }
 
 // مكون الفاتورة (للطباعة)
-const ReceiptTemplate = ({ inv, title }) => (
+const ReceiptTemplate = ({ inv, title }: any) => (
   <div style={{ width: '80mm', padding: '5mm', textAlign: 'center', fontFamily: 'Arial', direction: 'rtl' }}>
     <h2 style={{margin:0}}>{SHOP_NAME}</h2>
     <p style={{fontSize:12, margin:2}}>{SHOP_PHONE}</p>
@@ -853,7 +831,7 @@ const ReceiptTemplate = ({ inv, title }) => (
     <table style={{width:'100%', fontSize:12, borderCollapse:'collapse', marginTop:10}}>
       <thead><tr style={{borderBottom:'1px solid #000'}}><th align="right">المادة</th><th>الخدمة</th><th>عدد</th><th>سعر</th></tr></thead>
       <tbody>
-        {inv.items?.map((it, idx) => (
+        {inv.items?.map((it: any, idx: number) => (
           <tr key={idx} style={{borderBottom:'1px dotted #ccc'}}>
             <td>{it.category} {it.itemNote} {it.isUrgent && '(مستعجل)'}</td>
             <td style={{fontSize:10}}>{it.serviceType}</td>
